@@ -117,13 +117,19 @@ def _windows_plugin_matches_process_architecture(plugin_path: str) -> bool:
         return True
 
 
+EFFECT_PLUGINS_FOR_OTHER_ARCHITECTURES = []
 if platform.system() == "Windows":
+    EFFECT_PLUGINS_FOR_OTHER_ARCHITECTURES = [
+        f
+        for f in AVAILABLE_EFFECT_PLUGINS_IN_TEST_ENVIRONMENT
+        if not _windows_plugin_matches_process_architecture(
+            os.path.join(TEST_EFFECT_PLUGIN_BASE_PATH, platform.system(), f)
+        )
+    ]
     AVAILABLE_EFFECT_PLUGINS_IN_TEST_ENVIRONMENT = [
         f
         for f in AVAILABLE_EFFECT_PLUGINS_IN_TEST_ENVIRONMENT
-        if _windows_plugin_matches_process_architecture(
-            os.path.join(TEST_EFFECT_PLUGIN_BASE_PATH, platform.system(), f)
-        )
+        if f not in EFFECT_PLUGINS_FOR_OTHER_ARCHITECTURES
     ]
     AVAILABLE_INSTRUMENT_PLUGINS_IN_TEST_ENVIRONMENT = [
         f
@@ -315,6 +321,12 @@ def max_volume_of(x: np.ndarray) -> float:
 @pytest.mark.skipif(
     not IS_64BIT,
     reason="External plugins are not officially supported on 32-bit platforms.",
+)
+@pytest.mark.skipif(
+    not AVAILABLE_EFFECT_PLUGINS_IN_TEST_ENVIRONMENT
+    and bool(EFFECT_PLUGINS_FOR_OTHER_ARCHITECTURES),
+    reason="Test plugins are only available for other CPU architectures: "
+    + ", ".join(EFFECT_PLUGINS_FOR_OTHER_ARCHITECTURES),
 )
 def test_at_least_one_plugin_is_available_for_testing():
     assert AVAILABLE_EFFECT_PLUGINS_IN_TEST_ENVIRONMENT
