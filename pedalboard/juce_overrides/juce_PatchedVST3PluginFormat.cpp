@@ -1161,7 +1161,7 @@ struct DLLHandleCache : public DeletedAtShutdown {
   JUCE_DECLARE_SINGLETON(DLLHandleCache, false)
 
   DLLHandle &findOrCreateHandle(const String &modulePath) {
-#if JUCE_LINUX || JUCE_BSD
+#if JUCE_LINUX || JUCE_BSD || JUCE_WINDOWS
     File file(getDLLFileFromBundle(modulePath));
 #else
     File file(modulePath);
@@ -1197,6 +1197,30 @@ private:
     return file.getChildFile("Contents")
         .getChildFile(machineName + "-linux")
         .getChildFile(file.getFileNameWithoutExtension() + ".so");
+  }
+#elif JUCE_WINDOWS
+  // VST3 plugins on Windows may either be a single DLL with a .vst3 extension,
+  // or a bundle directory containing one DLL per CPU architecture:
+  // https://steinbergmedia.github.io/vst3_dev_portal/pages/Technical+Documentation/Locations+Format/Plugin+Format.html
+  File getDLLFileFromBundle(const String &bundlePath) const {
+    File file(bundlePath);
+
+    if (!file.isDirectory())
+      return file;
+
+#if defined(_M_ARM64)
+    const char *architectureName = "arm64-win";
+#elif defined(_M_X64)
+    const char *architectureName = "x86_64-win";
+#elif defined(_M_IX86)
+    const char *architectureName = "x86-win";
+#else
+#error "Unknown Windows CPU architecture for VST3 bundle lookup"
+#endif
+
+    return file.getChildFile("Contents")
+        .getChildFile(architectureName)
+        .getChildFile(file.getFileName());
   }
 #endif
 
@@ -3713,12 +3737,8 @@ bool PatchedVST3PluginFormat::fileMightContainThisPluginType(
     const String &fileOrIdentifier) {
   auto f = File::createFileWithoutCheckingPath(fileOrIdentifier);
 
-  return f.hasFileExtension(".vst3")
-#if JUCE_MAC || JUCE_LINUX || JUCE_BSD
-         && f.exists();
-#else
-         && f.existsAsFile();
-#endif
+  // On every platform, a .vst3 may be a bundle directory:
+  return f.hasFileExtension(".vst3") && f.exists();
 }
 
 String PatchedVST3PluginFormat::getNameOfPluginFromIdentifier(

@@ -238,8 +238,8 @@ ALL_INCLUDES += ["vendors/"]
 LAME_FLAGS = ["-DHAVE_MPGLIB"]
 LAME_CONFIG_FILE = str(Path("vendors/lame_config.h").resolve())
 if platform.system() == "Windows":
+    # HAVE_XMMINTRIN_H is defined by lame_config.h on x64 only, as SSE isn't available on ARM64.
     LAME_FLAGS.append(f"/FI{LAME_CONFIG_FILE}")
-    LAME_FLAGS.append("-DHAVE_XMMINTRIN_H")
 else:
     LAME_FLAGS.append(f"-include{LAME_CONFIG_FILE}")
 ALL_CFLAGS.extend(LAME_FLAGS)
