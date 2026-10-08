@@ -113,7 +113,7 @@ JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE("-Wconversion", "-Wshadow",
                                     "-Wsign-conversion", "-Wredundant-decls",
                                     "-Wlanguage-extension-token")
 
-#if JUCE_INTEL
+#if JUCE_INTEL && !defined(_M_ARM64) && !defined(_M_ARM64EC)
 #if JUCE_32BIT
 #define FLAC__CPU_IA32 1
 #endif
